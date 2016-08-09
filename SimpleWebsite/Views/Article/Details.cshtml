@@ -1,0 +1,28 @@
+﻿@model SimpleWebsite.Models.Article
+@{
+    ViewBag.Title = "Details";
+}
+
+<h2>@Model.Title</h2>
+
+@if (Model.Videos.Count != 0)
+{
+    <div class="flexslider">
+        <ul class="slides">
+            @foreach (var item in Model.Videos)
+            {
+                <li>
+                    <iframe width="560" height="315" src=@item.VideoUrl frameborder="0" allowfullscreen></iframe>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+<p>@Model.Content</p>
+<br/>
+
+<p>
+    @Html.ActionLink("Edit", "Edit", new {Id = Model.Id})
+    @Html.ActionLink("Delete", "Delete", new {Id = Model.Id})
+</p>

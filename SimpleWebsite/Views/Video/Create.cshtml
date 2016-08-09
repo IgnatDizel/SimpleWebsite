@@ -1,0 +1,53 @@
+﻿@model SimpleWebsite.Models.Video
+
+@{
+    ViewBag.Title = "Create";
+}
+
+<h2>Create</h2>
+
+@using (Html.BeginForm()) {
+    @Html.ValidationSummary(true)
+
+        <fieldset>
+        <legend>Article</legend>
+
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.VideoTitle)
+        </div>
+        <div class="editor-field">
+            @Html.TextAreaFor(m => m.VideoTitle, new {@class = "form-control", rows = "2", cols = "150"})
+            @Html.ValidationMessageFor(model => model.VideoTitle)
+        </div>
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.VideoUrl)
+        </div>
+        <div class="editor-field">
+            @Html.TextAreaFor(m => m.VideoUrl, new { @class = "form-control", rows = "10", cols = "150"})
+            @Html.ValidationMessageFor(model => model.VideoUrl)
+        </div>
+
+        @foreach (var item in ViewBag.Articles)
+        {
+            <input type="checkbox" name="selectedArticles" value="@item.Id"
+@*                   @(Model.Videos.Contains(item) ? "checked=\"checked\"" : "")*@
+                />@item.Title
+            <br/>
+            
+        }
+
+        <p>
+            <input type="submit" value="Save" />
+        </p>
+    </fieldset>
+}
+
+<div>
+    @Html.ActionLink("Back to List", "Index")
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

@@ -1,0 +1,57 @@
+﻿@model SimpleWebsite.Models.Article
+
+@{
+    ViewBag.Title = "Create";
+}
+
+<h2>Create</h2>
+
+@using (Html.BeginForm()) {
+    @Html.ValidationSummary(true)
+
+    <fieldset>
+        <legend>Article</legend>
+
+        
+
+         
+@*        @Html.HiddenFor(model => model.Id)*@
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Title)
+        </div>
+        <div class="editor-field">
+            @Html.TextAreaFor(m => m.Title, new {@class = "form-control", rows = "5", cols = "150"})
+            @Html.ValidationMessageFor(model => model.Title)
+        </div>
+
+        <div class="editor-label">
+            @Html.LabelFor(model => model.Content)
+        </div>
+        <div class="editor-field">
+            @Html.TextAreaFor(m => m.Content, new { @class = "form-control", rows = "20", cols = "150"})
+            @Html.ValidationMessageFor(model => model.Content)
+        </div>
+
+        @foreach (var item in ViewBag.Videos)
+        {
+            <input type="checkbox" name="selectedVideos" value="@item.Id"
+@*                   @(Model.Videos.Contains(item) ? "checked=\"checked\"" : "")*@
+                />@item.VideoTitle
+            <br/>
+            
+        }
+
+        <p>
+            <input type="submit" value="Save" />
+        </p>
+    </fieldset>
+}
+
+<div>
+    @Html.ActionLink("Back to List", "Index")
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

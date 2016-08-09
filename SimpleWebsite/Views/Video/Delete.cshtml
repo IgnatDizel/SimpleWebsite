@@ -1,0 +1,32 @@
+﻿@model SimpleWebsite.Models.Video
+
+@{
+    ViewBag.Title = "Delete";
+}
+
+<h2>Delete</h2>
+
+<h3>Are you sure you want to delete this?</h3>
+<fieldset>
+    <legend>Video</legend>
+
+    <div class="display-label">
+         @Html.DisplayNameFor(model => model.VideoUrl)
+    </div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.VideoUrl)
+    </div>
+
+    <div class="display-label">
+         @Html.DisplayNameFor(model => model.VideoTitle)
+    </div>
+    <div class="display-field">
+        @Html.DisplayFor(model => model.VideoTitle)
+    </div>
+</fieldset>
+@using (Html.BeginForm()) {
+    <p>
+        <input type="submit" value="Delete" /> |
+        @Html.ActionLink("Back to List", "Index")
+    </p>
+}
