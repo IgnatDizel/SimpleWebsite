@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Data.Entity;
 using System.Linq;
 using System.Web;
 using System.Web.Caching;
@@ -12,105 +10,94 @@ namespace SimpleWebsite.Controllers
 {
     public class VideoController : Controller
     {
-        private ArticleContext db = new ArticleContext();
-        private Cache cache = HttpRuntime.Cache;
+        private ArticleContext _db = new ArticleContext();
+        private Cache _cache = HttpRuntime.Cache;
 
         public ActionResult List()
         {
-            if (cache.Get("ListVideo") == null)
-            {
-                try
-                {
-                    cache.Insert("ListVideo", db.Videos.ToList(), null, DateTime.Now.AddMinutes(2),
-                        Cache.NoSlidingExpiration);
-                }
-                catch (Exception ex)
-                {
-                    ViewBag.errorMessage = ex.Message;
-                    return View("Error");
-                }
-            }
-            return View(cache.Get("ListVideo"));
-        }
-
-        public ActionResult Create()
-        {
-            if (cache.Get("allVideo") == null)
-            {
-                try
-                {
-                    cache.Insert("allVideo", db.Articles.ToList(), null, DateTime.Now.AddMinutes(2),
-                        Cache.NoSlidingExpiration);
-                }
-                catch (Exception ex)
-                {
-                    ViewBag.errorMessage = ex.Message;
-                    return View("Error");
-                }
-            }
-            ViewBag.Articles = cache.Get("allVideo");
-            return View();
-        }
-
-        [HttpPost]
-        public ActionResult Create(Video video, int[] selectedArticles)
-        {
-            for (int i = 0; i < selectedArticles.Length; i++)
-            {
-                if (db.Articles.Find(selectedArticles[i]).Videos.Count >= 5)
-                {
-                    ViewBag.Message = "Non Valid";
-                    return RedirectToAction("Create", "Video");
-                }
-            }
-
-
-            if (ModelState.IsValid)
-            {
-                if (selectedArticles != null)
-                {
-                    foreach (var v in db.Articles.Where(vi => selectedArticles.Contains(vi.Id)))
-                    {
-                        video.Articles.Add(v);
-                    }
-                    try
-                    {
-                        db.Entry(video).State = EntityState.Added;
-                        db.SaveChanges();
-                    }
-                    catch (Exception ex)
-                    {
-                        ViewBag.errorMessage = ex.Message;
-                        return View("Error");
-                    }
-                    return RedirectToAction("Index", "Home");
-
-                }
-            }
-
-            ViewBag.Message = "Non Valid";
-            return RedirectToAction("Create", "Video");
-        }
-
-        public ActionResult Edit(int id = 0)
-        {
-            Video video;
             try
             {
-                video = db.Videos.Find(id);
+                var videoList = _cache.Get(StatConf.VideoListCachKey);
+                if (videoList == null)
+                {
+                    videoList = _db.Videos.ToList();
+                    _cache.Insert(StatConf.VideoListCachKey, videoList, null, DateTime.Now.AddMinutes(StatConf.CacheExpirationTime),
+                        Cache.NoSlidingExpiration);
+                }
 
+                return View(videoList);
             }
             catch (Exception ex)
             {
                 ViewBag.errorMessage = ex.Message;
                 return View("Error");
             }
-            if (video == null)
-            {
-                return HttpNotFound();
-            }
-            return View(video);
+        }
 
+        public ActionResult Create()
+        {
+            if (_cache.Get(StatConf.ArticleListCachKey) == null)
+            {
+                try
+                {
+                    _cache.Insert(StatConf.ArticleListCachKey, _db.Articles.ToList(), null, DateTime.Now.AddMinutes(StatConf.CacheExpirationTime),
+                        Cache.NoSlidingExpiration);
+                }
+                catch (Exception ex)
+                {
+                    ViewBag.errorMessage = ex.Message;
+                    return View("Error");
+                }
+            }
+            ViewBag.Articles = _cache.Get(StatConf.ArticleListCachKey);
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult Create(Video video, int[] selectedArticles)
+        {
+            try
+            {
+                if (selectedArticles != null && selectedArticles.Any(t => _db.Articles.Find(t).Videos.Count >= 5))
+                {
+                    ViewBag.Message = "Non Valid";
+                    return RedirectToAction("Create", "Video");
+                }
+
+                if (selectedArticles != null)
+                {
+                    foreach (var v in _db.Articles.Where(vi => selectedArticles.Contains(vi.Id)))
+                    {
+                        video.Articles.Add(v);
+                    }
+                }
+                _db.Entry(video).State = EntityState.Added;
+                _db.SaveChanges();
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                ViewBag.errorMessage = ex.Message;
+                return View("Error");
+            }
+        }
+
+        public ActionResult Edit(int id)
+        {
+            try
+            {
+                Video video = _db.Videos.Find(id);
+                if (video == null)
+                {
+                    return HttpNotFound();
+                }
+                return View(video);
+            }
+            catch (Exception ex)
+            {
+                ViewBag.errorMessage = ex.Message;
+                return View("Error");
+            }
         }
 
         [HttpPost]
@@ -120,60 +107,57 @@ namespace SimpleWebsite.Controllers
             {
                 try
                 {
-                    db.Entry(video).State = EntityState.Modified;
-                    db.SaveChanges();
+                    _db.Entry(video).State = EntityState.Modified;
+                    _db.SaveChanges();
+                    return RedirectToAction("List");
                 }
                 catch (Exception ex)
                 {
                     ViewBag.errorMessage = ex.Message;
                     return View("Error");
                 }
-                return RedirectToAction("List");
-
             }
             return View(video);
         }
 
-        public ActionResult Delete(int id = 0)
+        public ActionResult Delete(int id)
         {
-            Video video;
             try
             {
-                video = db.Videos.Find(id);
+                Video video = _db.Videos.Find(id);
+                if (video == null)
+                {
+                    return HttpNotFound();
+                }
+                return View(video);
             }
             catch (Exception ex)
             {
                 ViewBag.errorMessage = ex.Message;
                 return View("Error");
             }
-            if (video == null)
-            {
-                return HttpNotFound();
-            }
-            return View(video);
         }
 
         [HttpPost, ActionName("Delete")]
         public ActionResult DeleteConfirmed(int id)
         {
-            Video video;
             try
             {
-                video = db.Videos.Find(id);
-                db.Videos.Remove(video);
-                db.SaveChanges();
+                Video video = _db.Videos.Find(id);
+                _db.Videos.Remove(video);
+                _db.SaveChanges();
+                return RedirectToAction("List");
             }
             catch (Exception ex)
             {
                 ViewBag.errorMessage = ex.Message;
                 return View("Error");
             }
-            return RedirectToAction("List");
         }
 
         protected override void Dispose(bool disposing)
         {
-            db.Dispose();
+            _db.Dispose();
             base.Dispose(disposing);
         }
     }

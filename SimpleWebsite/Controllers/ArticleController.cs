@@ -1,31 +1,28 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Data.Entity;
 using System.Linq;
 using System.Web;
 using System.Web.Caching;
 using System.Web.Mvc;
-using System.Web.UI;
 using SimpleWebsite.Models;
 
 namespace SimpleWebsite.Controllers
 {
     public class ArticleController : Controller
     {
-        private ArticleContext db = new ArticleContext();
-        private Cache cache = HttpRuntime.Cache;
+        private ArticleContext _db = new ArticleContext();
+        private Cache _cache = HttpRuntime.Cache;
 
         public ActionResult Details(int id = 0)
         {
-            string key = "DeteilsById:" + id;
+            string articleDeteilsCachKey = "DeteilsById:" + id;
 
 
-            if (cache.Get(key) == null)
+            if (_cache.Get(articleDeteilsCachKey) == null)
             {
                 try
                 {
-                    cache.Insert(key, db.Articles.Find(id), null, DateTime.Now.AddMinutes(2), Cache.NoSlidingExpiration);
+                    _cache.Insert(articleDeteilsCachKey, _db.Articles.Find(id), null, DateTime.Now.AddMinutes(StatConf.CacheExpirationTime), Cache.NoSlidingExpiration);
                 }
                 catch (Exception ex)
                 {
@@ -34,18 +31,18 @@ namespace SimpleWebsite.Controllers
                 }
             }
 
-            if (cache.Get(key) == null)
+            if (_cache.Get(articleDeteilsCachKey) == null)
             {
                 return HttpNotFound();
             }
-            return View(cache.Get(key));
+            return View(_cache.Get(articleDeteilsCachKey));
         }
 
         public ActionResult Create()
         {
             try
             {
-                ViewBag.Videos = db.Videos.ToList();
+                ViewBag.Videos = _db.Videos.ToList();
             }
             catch (Exception ex)
             {
@@ -58,89 +55,80 @@ namespace SimpleWebsite.Controllers
         [HttpPost]
         public ActionResult Create(Article article, int[] selectedVideos)
         {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Message = "Non Valid";
+                return RedirectToAction("Create", "Article");
+            }
 
-            if (ModelState.IsValid)
+            try
             {
                 if (selectedVideos != null)
                 {
                     if (selectedVideos.Length > 5)
                     {
                         ViewBag.Message = "Non Valid"; //TODO: Вывести ошибку
-                        return RedirectToAction("Edit", "Article", new { id = article.Id });
+                        return RedirectToAction("Edit", "Article", new {id = article.Id});
                     }
-                    try
-                    {
-                        foreach (var v in db.Videos.Where(vi => selectedVideos.Contains(vi.Id)))   //TODO: Херня! Исправить
-                        {
-                            article.Videos.Add(v);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        ViewBag.errorMessage = ex.Message;
-                        return View("Error");
-                    }
-                    foreach (var v in db.Videos.Where(vi => selectedVideos.Contains(vi.Id)))
+
+                    foreach (var v in _db.Videos.Where(vi => selectedVideos.Contains(vi.Id)))
                     {
                         article.Videos.Add(v);
                     }
                 }
-                try
-                {
-                    db.Entry(article).State = EntityState.Added;
-                    db.SaveChanges();
-                }
-                catch (Exception ex)
-                {
-                    ViewBag.errorMessage = ex.Message;
-                    return View("Error");
-                }
-                
+
+                _db.Entry(article).State = EntityState.Added;
+                _db.SaveChanges();
                 return RedirectToAction("Index", "Home");
-
-            }
-
-            ViewBag.Message = "Non Valid";
-            return RedirectToAction("Create", "Article");
-        }
-
-        public ActionResult Edit(int id = 0)
-        {
-            Article article;
-            try
-            {
-                article = db.Articles.Find(id);
-                ViewBag.Videos = db.Videos.ToList();
             }
             catch (Exception ex)
             {
                 ViewBag.errorMessage = ex.Message;
                 return View("Error");
             }
-            
-            if (article == null)
+        }
+
+        public ActionResult Edit(int id)
+        {
+            try
             {
-                return HttpNotFound();
+                var article = _db.Articles.Find(id);
+
+                if (article == null)
+                {
+                    return HttpNotFound();
+                }
+
+                ViewBag.Videos = _db.Videos.ToList();
+
+                return View(article);
             }
-            
-            return View(article);
+            catch (Exception ex)
+            {
+                ViewBag.errorMessage = ex.Message;
+                return View("Error");
+            }
         }
 
         [HttpPost]
-        public ActionResult Edit(Article article, int?[] selectedVideos)
+        public ActionResult Edit(Article article, int[] selectedVideos)
         {
-            Article newArticle;
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid || (selectedVideos != null && selectedVideos.Length > 5))
             {
-                try
+                ViewBag.Message = "Non Valid"; //TODO: Вывести ошибку
+                return RedirectToAction("Edit", "Article", new {id = article.Id});
+            }
+
+            try
+            {
+                var newArticle = _db.Articles.Find(article.Id);
+
+                if (newArticle == null)
                 {
-                    newArticle = db.Articles.Find(article.Id);
+                    ViewBag.Message = "Non Valid"; //TODO: Вывести ошибку
+                    return RedirectToAction("Edit", "Article", new { id = article.Id });
                 }
-                catch (Exception ex)
-                {
-                    ViewBag.errorMessage = ex.Message;
-                    return View("Error");                    
-                }
+
                 newArticle.Title = article.Title;
                 newArticle.Content = article.Content;
 
@@ -148,83 +136,62 @@ namespace SimpleWebsite.Controllers
 
                 if (selectedVideos != null)
                 {
-                    if (selectedVideos.Length > 5)
+                    foreach (var v in _db.Videos.Where(vi => selectedVideos.Contains(vi.Id)))
                     {
-                        ViewBag.Message = "Non Valid"; //TODO: Вывести ошибку
-                        return RedirectToAction("Edit", "Article", new { id = article.Id });
-                    }
-                    try
-                    {
-                        foreach (var v in db.Videos.Where(vi => selectedVideos.Contains(vi.Id)))
-                        {
-                            newArticle.Videos.Add(v);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        ViewBag.errorMessage = ex.Message;
-                        return View("Error");
+                        newArticle.Videos.Add(v);
                     }
                 }
-                try
-                {
-                    db.Entry(newArticle).State = EntityState.Modified;
-                    db.SaveChanges();
-                }
-                catch (Exception ex)
-                {
-                    ViewBag.errorMessage = ex.Message;
-                    return View("Error");
-                }
-                
-                return RedirectToAction("Index", "Home");
-            }
 
-            ViewBag.Message = "Non Valid";              //TODO: Вывести ошибку
-            return RedirectToAction("Edit", "Article", new { id = article.Id });
-        }
-
-        public ActionResult Delete(int id = 0)
-        {
-            Article article;
-            try
-            {
-                article = db.Articles.Find(id);
-            }
-            catch (Exception ex)
-            {
-                ViewBag.errorMessage = ex.Message;
-                return View("Error");  
-            }
-            if (article == null)
-            {
-                return HttpNotFound();
-            }
-            return View(article);
-        }
-
-        [HttpPost, ActionName("Delete")]
-        public ActionResult DeleteConfirmed(int id)
-        {
-            Article article;
-            try
-            {
-                article = db.Articles.Find(id);
-                db.Articles.Remove(article);
-                db.SaveChanges();
+                _db.Entry(newArticle).State = EntityState.Modified;
+                _db.SaveChanges();
             }
             catch (Exception ex)
             {
                 ViewBag.errorMessage = ex.Message;
                 return View("Error");
             }
-            
+
             return RedirectToAction("Index", "Home");
+        }
+
+        public ActionResult Delete(int id)
+        {
+            try
+            {
+                Article article = _db.Articles.Find(id);
+                if (article == null)
+                {
+                    return HttpNotFound();
+                }
+                return View(article);
+            }
+            catch (Exception ex)
+            {
+                ViewBag.errorMessage = ex.Message;
+                return View("Error");
+            }
+        }
+
+        [HttpPost, ActionName("Delete")]
+        public ActionResult DeleteConfirmed(int id)
+        {
+            try
+            {
+                Article article = _db.Articles.Find(id);
+                _db.Articles.Remove(article);
+                _db.SaveChanges();
+                return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                ViewBag.errorMessage = ex.Message;
+                return View("Error");
+            }
         }
 
         protected override void Dispose(bool disposing)
         {
-            db.Dispose();
+            _db.Dispose();
             base.Dispose(disposing);
         }
     }

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Data.Entity;
 using System.Linq;
 using System.Web;
 using System.Web.Caching;
@@ -12,27 +9,28 @@ namespace SimpleWebsite.Controllers
 {
     public class HomeController : Controller
     {
-        ArticleContext db = new ArticleContext();
-        private Cache cache = HttpRuntime.Cache;
+        private ArticleContext _db = new ArticleContext();
+        private Cache _cache = HttpRuntime.Cache;
 
         public ActionResult Index()
         {
-
-            if (cache.Get("List") == null)
+            try
             {
-                try
+                var articleList = _cache.Get(StatConf.ArticleListCachKey);
+                if (articleList == null)
                 {
-                    cache.Insert("List", db.Articles.ToList(), null, DateTime.Now.AddMinutes(2), Cache.NoSlidingExpiration);
+                    articleList = _db.Articles.ToList();
+                    _cache.Insert(StatConf.ArticleListCachKey, articleList, null, DateTime.Now.AddMinutes(StatConf.CacheExpirationTime),
+                        Cache.NoSlidingExpiration);
                 }
-                catch (Exception ex)
-                {
-                    ViewBag.errorMessage = ex.Message;
-                    return View("Error");
-                }
-            }
-            
-            return View(cache.Get("List"));
-        }
 
+                return View(articleList);
+            }
+            catch (Exception ex)
+            {
+                ViewBag.errorMessage = ex.Message;
+                return View("Error");
+            }
+        }
     }
 }

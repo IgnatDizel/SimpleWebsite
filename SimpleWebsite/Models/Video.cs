@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Web;
+
 
 namespace SimpleWebsite.Models
 {
@@ -10,12 +8,9 @@ namespace SimpleWebsite.Models
     {
         public int Id { get; set; }
 
-//        [Required(ErrorMessage = "Поле должно быть установлено")]
-        [Display(Name = "url видео")]
-        [RegularExpression(@"@^(https?|ftp)://[^\s/$.?#].[^\s]*$@iS", ErrorMessage = "Некорректный адрес")]
+        [Display(Name = "src видео")]
         public string VideoUrl { get; set; }
 
-//        [Required(ErrorMessage = "Поле должно быть установлено")]
         [Display(Name = "Название видео")]
         public string VideoTitle { get; set; }
 
